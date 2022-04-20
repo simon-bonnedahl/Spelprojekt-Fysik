@@ -1,5 +1,8 @@
 import pygame as pg
 from settings import *
+from ball import Ball
+from wall import Wall
+from ground import Ground
 
 class Game:
     def __init__(self):
@@ -9,19 +12,21 @@ class Game:
         self.clock = pg.time.Clock()
         self.fps = FPS
 
-
-
     def new(self):
         self.allObjects = pg.sprite.Group()
+        self.walls = pg.sprite.Group()
+        self.grounds = pg.sprite.Group()
+        self.ball = Ball(self, 350, 0)
+        self.ground = Ground(self, 0, GROUND_HEIGHT + 20, WIDTH, HEIGHT - GROUND_HEIGHT)
+        self.leftWall = Wall(self, 0, 0, 20, HEIGHT)
+        self.rightWall = Wall(self, WIDTH - 20, 0, 20, HEIGHT)
+
 
     def run(self):
         self.events()
         self.update()
         self.draw()
         self.clock.tick(self.fps)
-
-
-
 
     def events(self):
         for event in pg.event.get():
@@ -31,19 +36,14 @@ class Game:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
 
-
     def update(self):
         for object in self.allObjects:
             object.update()
-
-
-
 
     def draw(self):
         self.screen.fill(BGCOLOR)
         self.allObjects.draw(self.screen)
         pg.display.flip()
-
 
     def drawText(self, text, font_name, size, color, x, y, align="center"):
         font = pg.font.SysFont(font_name, size)
@@ -53,7 +53,6 @@ class Game:
 
     def quit(self):
         pg.quit()
-
 
 
 g = Game()
