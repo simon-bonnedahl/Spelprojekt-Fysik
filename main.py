@@ -3,6 +3,8 @@ from settings import *
 from ball import Ball
 from wall import Wall
 from ground import Ground
+import random
+import time
 
 class Game:
     def __init__(self):
@@ -16,17 +18,17 @@ class Game:
         self.allObjects = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.grounds = pg.sprite.Group()
-        self.ball = Ball(self, 350, 0)
+        self.balls = pg.sprite.Group()
         self.ground = Ground(self, 0, GROUND_HEIGHT + 20, WIDTH, HEIGHT - GROUND_HEIGHT)
         self.leftWall = Wall(self, 0, 0, 20, HEIGHT)
         self.rightWall = Wall(self, WIDTH - 20, 0, 20, HEIGHT)
 
 
     def run(self):
+        self.dt = self.clock.tick(self.fps) / 1000
         self.events()
         self.update()
         self.draw()
-        self.clock.tick(self.fps)
 
     def events(self):
         for event in pg.event.get():
@@ -35,6 +37,8 @@ class Game:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
+                if event.key == pg.K_SPACE:
+                    Ball(self, 100, 0, random.randrange(10, 50))
 
     def update(self):
         for object in self.allObjects:
