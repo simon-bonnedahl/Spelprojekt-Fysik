@@ -1,7 +1,10 @@
 import pygame as pg
+import pygame.gfxdraw
 from settings import *
 import math 
 vec = pg.math.Vector2
+import random
+
 
 class Ball(pg.sprite.Sprite):
     def __init__(self, game, x, y, radius):
@@ -9,56 +12,86 @@ class Ball(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
 
+        #Fysik
+        self.density = 0.5
         self.radius = radius
-        self.mass = self.radius *0.5
+        self.area = self.radius*math.pi*2
+        self.mass = self.area*self.density
         self.pos = vec(x, y)
-        self.vel = vec(0, 0)
+        self.vel = vec(5, -5)
         self.acc = vec(0, 0)
+        self.onGround = False
 
-        self.jumpHeight = JUMPING_HEIGHT
-        self.onGround = True
-
-        self.image = pg.Surface((self.radius*2, self.radius*2))
+        #Grafik
+        self.image = pg.Surface((self.radius*2, self.radius*2), pg.SRCALPHA)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
+        self.bg = pg.image.load("bg.jpeg")
+        self.bg = pg.transform.scale(self.bg, (self.radius*2, self.radius*2))
+        r = random.randint(0,255)
+        g = random.randint(0,255)
+        b = random.randint(0,255)
+        self.color = (r, g, b)
+        self.color = WHITE
 
-        self.color = LIGHTGREY
-        self.skin = True
+        self.rotationAngle = 0
+        
 
 
 
     def update(self):  
-       
-        for i in range(10):
+
+        if self.onGround != True:
+            self.acc = vec(0, GRAVITY)
+        else:
             self.acc = vec(0, 0)
-            self.getInputs()
-            self.acc.y = GRAVITY
-            #   self.acc += self.vel * -self.airResistance
-            self.vel += self.acc * self.game.dt             #Delta time
-            #applyAirResistance(self.vel, self.radius)
-            self.pos += self.vel    
+        gravityForce = self.acc * self.mass
+        dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
+        self.acc = (gravityForce + dragForce)/self.mass   
+        #self.acc += self.vel * -AIR_RESISTANCE         #Förenklad luftmotstånd
+        self.vel += self.acc * self.game.dt             #Delta time
+        self.pos += self.vel    
 
-            """fg = -g * m
-                vn = normalize(v)
-                fd = -vn * 0.5f * p * Cd * A * v^2
-                a = (fg + fd)/m
-                v += a * dt
-                x += v * dt"""
-            
-            """Force = Direction * Power
-            Acceleration = Force / Mass
-            Velocity += Acceleration * elapsedTime
-            Position += Velocity * elapsedTime"""
+        """fg = -g * m
+            vn = normalize(v)
+            fd = -vn * 0.5f * p * Cd * A * v^2
+            a = (fg + fd)/m
+            v += a * dt
+            x += v * dt"""
+        
+        """Force = Direction * Power
+        Acceleration = Force / Mass
+        Velocity += Acceleration * elapsedTime
+        Position += Velocity * elapsedTime"""
 
-            self.rect.centerx = self.pos.x
-            self.collideWithEnviroment('x')
-            self.rect.centery = self.pos.y
-            self.collideWithEnviroment('y')
-            self.collideWithBalls(self.game.balls)
 
-        pg.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
+        """Vector acceleration = Gravity * ( 1 / Mass);
 
+            m_velocity += acceleration * Time.deltaTime;
+
+            float drag = 0.5f * p * pow(m_velocity.magnitude, 2f) * Cd * A;
+
+            m_velocity -= new Vector3 (0, clamp(drag, 0, terminalVelocity), 0);
+
+            m_position += m_velocity * Time.deltaTime;"""
+
+        
+        self.rect.centerx = self.pos.x
+        self.collideWithEnviroment('x')
+        self.rect.centery = self.pos.y
+        self.collideWithEnviroment('y')
+
+        self.collideWithBalls(self.game.balls)
+        
+       
+
+        
+        #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
+        pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
+        pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
+        #pg.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
+        self.image.blit(self.bg, (0, 0), None, pg.BLEND_RGBA_MIN)
 
 
 
@@ -70,11 +103,6 @@ class Ball(pg.sprite.Sprite):
         if self.keys[pg.K_RIGHT]:
             self.acc.x = 0.2
 
-
-    def jump(self):
-        #self.vel.y -= self.jumpHeight
-        self.onGround = False
-
     def collideWithEnviroment(self, dir):
         if dir == 'x':
             hits = pg.sprite.spritecollide(self, self.game.walls, False)
@@ -83,13 +111,19 @@ class Ball(pg.sprite.Sprite):
         if dir == 'y':
             hits = pg.sprite.spritecollide(self, self.game.grounds, False)
             if hits:
+                
                 if self.vel.y > 0:
                     self.pos.y = hits[0].rect.top - self.rect.height / 2
-                    self.onGround = True
-                if self.vel.y < 0.2:
+                if self.vel.y < 0:
                     self.pos.y = hits[0].rect.bottom + self.rect.height / 2
+                if abs(self.vel.y) < 1.5:
+                       
+                    self.onGround = True
+                    self.vel.y = 0
                 else:
+                    self.onGround = False
                     self.vel.y *= -0.95  #-0.95 om 5% av energin försvinner vid studs
+                    
             
     def distanceTo(self, pos2, pos1):
         return math.sqrt((pos2.x - pos1.x)**2 + (pos2.y - pos1.y)**2)
@@ -99,7 +133,8 @@ class Ball(pg.sprite.Sprite):
             if ball != self:
                 distanceNextFrame = self.distanceTo(self.pos + self.vel, ball.pos + ball.vel);	
                 if (distanceNextFrame - self.radius - ball.radius < 0):
-                    
+                    self.onGround = False
+                    ball.onGround = False
                     dist = self.distanceTo(self.pos, ball.pos);	
 
                     normalX = (ball.pos.x - self.pos.x) / dist
@@ -116,9 +151,43 @@ class Ball(pg.sprite.Sprite):
 
                     mass1 = (dotProductNorm1 * (self.mass - ball.mass) + 2 * ball.mass * dotProductNorm2) / (self.mass + ball.mass)
                     mass2 = (dotProductNorm2 * (ball.mass - self.mass) + 2 * self.mass * dotProductNorm1) / (self.mass + ball.mass)
-
+                    
                     self.vel.x = tangentX * dotProductTan1 + normalX * mass1
                     self.vel.y = tangentY * dotProductTan1 + normalY * mass1
 
                     ball.vel.x = tangentX * dotProductTan2 + normalX * mass2
                     ball.vel.y = tangentY * dotProductTan2 + normalY * mass2
+
+
+                """public static void intersect(Ball a, Ball b) {
+                //ref http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
+                double xDist, yDist;
+                xDist = a.x - b.x;
+                yDist = a.y - b.y;
+                double distSquared = xDist * xDist + yDist * yDist;
+                // Check the squared distances instead of the the distances, same
+                // result, but avoids a square root.
+                if (distSquared <= (a.radius + b.radius) * (a.radius + b.radius)) {
+                    double speedXocity = b.speedX - a.speedX;
+                    double speedYocity = b.speedY - a.speedY;
+                    double dotProduct = xDist * speedXocity + yDist * speedYocity;
+                    // Neat vector maths, used for checking if the objects moves towards
+                    // one another.
+                    if (dotProduct > 0) {
+                        double collisionScale = dotProduct / distSquared;
+                        double xCollision = xDist * collisionScale;
+                        double yCollision = yDist * collisionScale;
+                        // The Collision vector is the speed difference projected on the
+                        // Dist vector,
+                        // thus it is the component of the speed difference needed for
+                        // the collision.
+                        double combinedMass = a.getMass() + b.getMass();
+                        double collisionWeightA = 2 * b.getMass() / combinedMass;
+                        double collisionWeightB = 2 * a.getMass() / combinedMass;
+                        a.speedX += (collisionWeightA * xCollision);
+                        a.speedY += (collisionWeightA * yCollision);
+                        b.speedX -= (collisionWeightB * xCollision);
+                        b.speedY -= (collisionWeightB * yCollision);
+                    }
+                }
+    }"""
