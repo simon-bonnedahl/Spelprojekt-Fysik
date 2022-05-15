@@ -39,26 +39,29 @@ class Ball(pg.sprite.Sprite):
 
 
     def update(self):  
-
-        if self.onGround != True:
+        #Updaterar krafterna som påverkar bollen, acceleration, hastighet och läge
+        dragForce = vec(0, 0)
+        gravityForce = vec(0, 0)
+        frictionForce = vec(0, 0)
+        if self.onGround != True:                           #Om en boll är i luften, räkna ut gravitationen
             self.acc = vec(0, GRAVITY)
-        else:
+            gravityForce = self.acc * self.mass             #F = m * a
+        else:                                               #Om en boll är på marken, räkna ut friktionen
             self.acc = vec(0, 0)
-            #lägg på friction?
+            normalForce = self.mass * GRAVITY               #Normalkraften = Gravitationskraften
+            frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT                    
 
-        gravityForce = self.acc * self.mass
-        if self.vel.magnitude() > 0:
+        
+        if self.vel.magnitude() > 0:                        #Om bollen är i rörelse, räkna ut luftmotståndet
             dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
         
-        self.acc = (gravityForce + dragForce)/self.mass   
-        
-        #self.acc += self.vel * -AIR_RESISTANCE         #Förenklad luftmotstånd
+        nettoForce = gravityForce + dragForce + frictionForce
+        self.acc = (nettoForce)/self.mass   
 
-        self.vel += self.acc * self.game.dt             #Delta time
+        self.vel += self.acc * self.game.dt             #Delta tid
         self.pos += self.vel    
 
-
-        
+        #Kollisoner
         self.rect.centerx = self.pos.x
         self.collideWithEnviroment('x')
         self.rect.centery = self.pos.y
@@ -68,6 +71,7 @@ class Ball(pg.sprite.Sprite):
         
        
 
+        #Rendering
         
         #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
         pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
@@ -75,25 +79,31 @@ class Ball(pg.sprite.Sprite):
 
 
     def collideWithEnviroment(self, dir):
-        if dir == 'x':
+
+        if dir == 'x':                  #Kollision med väggar
             hits = pg.sprite.spritecollide(self, self.game.walls, False)
             if hits:
-                self.vel.x *= -0.95 #-0.95 om 5% av energin försvinner vid studs
+                if self.vel.x > 0:                                          #Höger vägg
+                    self.pos.x = hits[0].rect.left - self.rect.width /2
+                if self.vel.x < 0:                                          #Vänster vägg
+                    self.pos.x = hits[0].rect.right + self.rect.width /2
+
+                self.vel.x *= -0.90 # 10% av hastigheten försvinner vid studs
+
+                                        #Kollision med marken
         if dir == 'y':
             hits = pg.sprite.spritecollide(self, self.game.grounds, False)
-            if hits:
-                
+            if hits: 
                 if self.vel.y > 0:
-                    self.pos.y = hits[0].rect.top - self.rect.height / 2
-                if self.vel.y < 0:
-                    self.pos.y = hits[0].rect.bottom + self.rect.height / 2
-                if abs(self.vel.y) < 1.5:
-                       
-                    self.onGround = True
-                    self.vel.y = 0
-                else:
-                    self.onGround = False
-                    self.vel.y *= -0.95  #-0.95 om 5% av energin försvinner vid studs
+                    self.pos.y = hits[0].rect.top - self.rect.height / 2        #Sätt bollens position precis ovanför marken
+
+                    if abs(self.vel.y) < 1.5:                                   #Om bollens hastighet är tillräckligt
+                                                                                #liten vid studs, sätt den till 0.
+                        self.onGround = True
+                        self.vel.y = 0
+                    else:                                                       
+                        self.onGround = False
+                        self.vel.y *= -0.90                                     # 10% av hastigheten försvinner vid studs
                     
             
     def distanceTo(self, pos2, pos1):
@@ -106,6 +116,7 @@ class Ball(pg.sprite.Sprite):
                 if (distanceNextFrame - self.radius - ball.radius < 0):
                     self.onGround = False
                     ball.onGround = False
+
                     dist = self.distanceTo(self.pos, ball.pos);	
 
                     normalX = (ball.pos.x - self.pos.x) / dist

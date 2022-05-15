@@ -42,7 +42,7 @@ class Game:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
                 if event.key == pg.K_SPACE:
-                    Ball(self, 80, HEIGHT - 400, random.randrange(10, 50))
+                    Ball(self, 80, HEIGHT - 400, random.randrange(20, 40))
 
     def update(self):
         for object in self.allObjects:
@@ -50,9 +50,6 @@ class Game:
 
     def draw(self):
         self.screen.fill(BGCOLOR)
-        #for i in range(10):
-            #for j in range(10):
-                #  self.screen.blit(self.bg, (i*130, j*130))
         #self.screen.blit(self.bg, (0,0))
         self.allObjects.draw(self.screen)
         pg.display.flip()
