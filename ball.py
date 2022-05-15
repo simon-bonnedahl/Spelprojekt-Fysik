@@ -23,17 +23,10 @@ class Ball(pg.sprite.Sprite):
         self.onGround = False
 
         #Grafik
-        self.image = pg.Surface((self.radius*2, self.radius*2), pg.SRCALPHA)
-        self.image.set_colorkey(BLACK)
+        self.sprite = pg.image.load("sprite_{}.png".format(random.randrange(1, 5))).convert_alpha()
+        self.image = pg.transform.scale(self.sprite, (self.radius*2, self.radius*2))
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
-        self.bg = pg.image.load("bg.jpeg")
-        self.bg = pg.transform.scale(self.bg, (self.radius*2, self.radius*2))
-        r = random.randint(0,255)
-        g = random.randint(0,255)
-        b = random.randint(0,255)
-        self.color = (r, g, b)
-        #self.color = WHITE
 
 
 
@@ -52,9 +45,10 @@ class Ball(pg.sprite.Sprite):
             frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT                    
 
         
-        if self.vel.magnitude() > 0:                        #Om bollen är i rörelse, räkna ut luftmotståndet
+        if self.vel.magnitude() > 0.01:                        #Om bollen är i rörelse, räkna ut luftmotståndet
             dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
-        
+        else:
+            self.vel = vec(0, 0)
         nettoForce = gravityForce + dragForce + frictionForce
         self.acc = (nettoForce)/self.mass   
 
@@ -74,9 +68,10 @@ class Ball(pg.sprite.Sprite):
         #Rendering
         
         #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
-        pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
-        pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
+       # pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
+        #pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
 
+        self.game.screen.blit(self.sprite, (self.pos))
 
     def collideWithEnviroment(self, dir):
 

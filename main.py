@@ -42,15 +42,21 @@ class Game:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
                 if event.key == pg.K_SPACE:
-                    Ball(self, 80, HEIGHT - 400, random.randrange(20, 40))
+                    Ball(self, 80, HEIGHT - 400, random.randrange(30, 60))
 
     def update(self):
         for object in self.allObjects:
             object.update()
-
+        
+       
     def draw(self):
         self.screen.fill(BGCOLOR)
         #self.screen.blit(self.bg, (0,0))
+        for index, ball in enumerate(self.balls):
+            self.drawText(str(index+1), "Arial", ball.radius//2, (255, 255, 255), ball.pos.x, ball.pos.y - ball.radius - 20)
+            infoString = str(index+1) + "   Mass: " + str(round(ball.mass)) +  "   Velocity: " + str(round(ball.vel.x, 1)) + ", " + str(round(ball.vel.y, 1))
+            self.drawText(infoString, "Arial", 15, (255, 255, 255), 900, 25 + (25*index))
+
         self.allObjects.draw(self.screen)
         pg.display.flip()
 
