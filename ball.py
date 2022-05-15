@@ -13,9 +13,9 @@ class Ball(pg.sprite.Sprite):
         self.game = game
 
         #Fysik
-        self.density = 0.5
+        self.density = 5
         self.radius = radius
-        self.area = self.radius*math.pi*2
+        self.area = self.radius**2 * math.pi
         self.mass = self.area*self.density
         self.pos = vec(x, y)
         self.vel = vec(5, -5)
@@ -46,35 +46,19 @@ class Ball(pg.sprite.Sprite):
             self.acc = vec(0, GRAVITY)
         else:
             self.acc = vec(0, 0)
+            #apply friction
+
         gravityForce = self.acc * self.mass
-        dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
+        if self.vel.magnitude() > 0:
+            dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
+        
         self.acc = (gravityForce + dragForce)/self.mass   
+        
         #self.acc += self.vel * -AIR_RESISTANCE         #Förenklad luftmotstånd
+
         self.vel += self.acc * self.game.dt             #Delta time
         self.pos += self.vel    
 
-        """fg = -g * m
-            vn = normalize(v)
-            fd = -vn * 0.5f * p * Cd * A * v^2
-            a = (fg + fd)/m
-            v += a * dt
-            x += v * dt"""
-        
-        """Force = Direction * Power
-        Acceleration = Force / Mass
-        Velocity += Acceleration * elapsedTime
-        Position += Velocity * elapsedTime"""
-
-
-        """Vector acceleration = Gravity * ( 1 / Mass);
-
-            m_velocity += acceleration * Time.deltaTime;
-
-            float drag = 0.5f * p * pow(m_velocity.magnitude, 2f) * Cd * A;
-
-            m_velocity -= new Vector3 (0, clamp(drag, 0, terminalVelocity), 0);
-
-            m_position += m_velocity * Time.deltaTime;"""
 
         
         self.rect.centerx = self.pos.x
@@ -90,18 +74,10 @@ class Ball(pg.sprite.Sprite):
         #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
         pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
         pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
+
         #pg.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
-        self.image.blit(self.bg, (0, 0), None, pg.BLEND_RGBA_MIN)
+        #self.image.blit(self.bg, (0, 0), None, pg.BLEND_RGBA_MIN)
 
-
-
-
-    def getInputs(self):
-        self.keys = pg.key.get_pressed()
-        if self.keys[pg.K_LEFT]:
-            self.acc.x = -0.2
-        if self.keys[pg.K_RIGHT]:
-            self.acc.x = 0.2
 
     def collideWithEnviroment(self, dir):
         if dir == 'x':
