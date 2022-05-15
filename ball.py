@@ -18,7 +18,7 @@ class Ball(pg.sprite.Sprite):
         self.area = self.radius**2 * math.pi
         self.mass = self.area*self.density
         self.pos = vec(x, y)
-        self.vel = vec(5, -5)
+        self.vel = vec(5, -5)                   #initital hastighetesvektor
         self.acc = vec(0, 0)
         self.onGround = False
 
@@ -33,10 +33,8 @@ class Ball(pg.sprite.Sprite):
         g = random.randint(0,255)
         b = random.randint(0,255)
         self.color = (r, g, b)
-        self.color = WHITE
+        #self.color = WHITE
 
-        self.rotationAngle = 0
-        
 
 
 
@@ -46,7 +44,7 @@ class Ball(pg.sprite.Sprite):
             self.acc = vec(0, GRAVITY)
         else:
             self.acc = vec(0, 0)
-            #apply friction
+            #lägg på friction?
 
         gravityForce = self.acc * self.mass
         if self.vel.magnitude() > 0:
@@ -74,9 +72,6 @@ class Ball(pg.sprite.Sprite):
         #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
         pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
         pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
-
-        #pg.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
-        #self.image.blit(self.bg, (0, 0), None, pg.BLEND_RGBA_MIN)
 
 
     def collideWithEnviroment(self, dir):
@@ -133,37 +128,3 @@ class Ball(pg.sprite.Sprite):
 
                     ball.vel.x = tangentX * dotProductTan2 + normalX * mass2
                     ball.vel.y = tangentY * dotProductTan2 + normalY * mass2
-
-
-                """public static void intersect(Ball a, Ball b) {
-                //ref http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
-                double xDist, yDist;
-                xDist = a.x - b.x;
-                yDist = a.y - b.y;
-                double distSquared = xDist * xDist + yDist * yDist;
-                // Check the squared distances instead of the the distances, same
-                // result, but avoids a square root.
-                if (distSquared <= (a.radius + b.radius) * (a.radius + b.radius)) {
-                    double speedXocity = b.speedX - a.speedX;
-                    double speedYocity = b.speedY - a.speedY;
-                    double dotProduct = xDist * speedXocity + yDist * speedYocity;
-                    // Neat vector maths, used for checking if the objects moves towards
-                    // one another.
-                    if (dotProduct > 0) {
-                        double collisionScale = dotProduct / distSquared;
-                        double xCollision = xDist * collisionScale;
-                        double yCollision = yDist * collisionScale;
-                        // The Collision vector is the speed difference projected on the
-                        // Dist vector,
-                        // thus it is the component of the speed difference needed for
-                        // the collision.
-                        double combinedMass = a.getMass() + b.getMass();
-                        double collisionWeightA = 2 * b.getMass() / combinedMass;
-                        double collisionWeightB = 2 * a.getMass() / combinedMass;
-                        a.speedX += (collisionWeightA * xCollision);
-                        a.speedY += (collisionWeightA * yCollision);
-                        b.speedX -= (collisionWeightB * xCollision);
-                        b.speedY -= (collisionWeightB * yCollision);
-                    }
-                }
-    }"""
