@@ -36,21 +36,25 @@ class Ball(pg.sprite.Sprite):
         dragForce = vec(0, 0)
         gravityForce = vec(0, 0)
         frictionForce = vec(0, 0)
+
         if self.onGround != True:                           #Om en boll är i luften, räkna ut gravitationen
             self.acc = vec(0, GRAVITY)
             gravityForce = self.acc * self.mass             #F = m * a
         else:                                               #Om en boll är på marken, räkna ut friktionen
             self.acc = vec(0, 0)
             normalForce = self.mass * GRAVITY               #Normalkraften = Gravitationskraften
-            frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT                    
+            if self.vel.magnitude() > 0.01: 
+                frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT                    
 
         
         if self.vel.magnitude() > 0.01:                        #Om bollen är i rörelse, räkna ut luftmotståndet
             dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
         else:
             self.vel = vec(0, 0)
+
         nettoForce = gravityForce + dragForce + frictionForce
-        self.acc = (nettoForce)/self.mass   
+
+        self.acc = nettoForce/self.mass   
 
         self.vel += self.acc * self.game.dt             #Delta tid
         self.pos += self.vel    
@@ -112,25 +116,40 @@ class Ball(pg.sprite.Sprite):
                     self.onGround = False
                     ball.onGround = False
 
-                    dist = self.distanceTo(self.pos, ball.pos);	
+                    dist = self.distanceTo(self.pos, ball.pos);	                #Mass center till mass center(hypotenusa)
+                    pg.draw.line(self.game.screen, (0, 0, 0), self.pos, ball.pos, width=2)
+                    #print("drawing line")
 
-                    normalX = (ball.pos.x - self.pos.x) / dist
-                    normalY = (ball.pos.y - self.pos.y) / dist
-
-                    tangentX = -normalY
-                    tangentY = normalX
-
-                    dotProductTan1 = self.vel.x * tangentX + self.vel.y * tangentY
-                    dotProductTan2 = ball.vel.x * tangentX + ball.vel.y * tangentY
-
-                    dotProductNorm1 = self.vel.x * normalX + self.vel.y * normalY
-                    dotProductNorm2 = ball.vel.x * normalX + ball.vel.y * normalY
-
-                    mass1 = (dotProductNorm1 * (self.mass - ball.mass) + 2 * ball.mass * dotProductNorm2) / (self.mass + ball.mass)
-                    mass2 = (dotProductNorm2 * (ball.mass - self.mass) + 2 * self.mass * dotProductNorm1) / (self.mass + ball.mass)
+                    print("My pos", self.pos)
+                    print("Other pos", ball.pos)
                     
-                    self.vel.x = tangentX * dotProductTan1 + normalX * mass1
-                    self.vel.y = tangentY * dotProductTan1 + normalY * mass1
+                    normalX = (ball.pos.x - self.pos.x) / dist                  #Skillnad i x-led delat på hypotenusa
+                    normalY = (ball.pos.y - self.pos.y) / dist                  #Skillnad i y-led delat på hypotenusa
 
-                    ball.vel.x = tangentX * dotProductTan2 + normalX * mass2
-                    ball.vel.y = tangentY * dotProductTan2 + normalY * mass2
+                    normal = vec(normalX, normalY)
+                    tangent = vec(-normal.y, normal.x)
+
+                    print("Tangent: ", tangent)
+                    print("Normal: ", normal)
+
+                    dotProductTan1 = self.vel.x * tangent.x + self.vel.y * tangent.y
+                    dotProductTan2 = ball.vel.x * tangent.x + ball.vel.y * tangent.y
+
+                    print("Dot product 1: ", dotProductTan1)
+                    print("Dot product 2: ", dotProductTan2)
+
+                    self.velocityMagnitudeInitial = self.vel.x * normal.x + self.vel.y * normal.y
+                    ball.velocityMagnitudeInitial = ball.vel.x * normal.x + ball.vel.y * normal.y
+
+                    print("My velocity initial: ", self.velocityMagnitudeInitial)
+                    print("Other velocity initial: ", ball.velocityMagnitudeInitial)
+                                #Vai                    #ma - mb                #2mb            Vbi                 ma + mb
+                    self.velocityMagnitudeFinal = (self.velocityMagnitudeInitial * (self.mass - ball.mass) + 2 * ball.mass * ball.velocityMagnitudeInitial) / (self.mass + ball.mass)
+                    ball.velocityMagnitudeFinal = (ball.velocityMagnitudeInitial * (ball.mass - self.mass) + 2 * self.mass * self.velocityMagnitudeInitial) / (self.mass + ball.mass)
+                    
+                   
+                    self.vel.x = tangent.x * dotProductTan1 + normal.x * self.velocityMagnitudeFinal
+                    self.vel.y = tangent.y * dotProductTan1 + normal.y * self.velocityMagnitudeFinal
+
+                    ball.vel.x = tangent.x  * dotProductTan2 + normal.x * ball.velocityMagnitudeFinal
+                    ball.vel.y = tangent.y * dotProductTan2 + normal.y * ball.velocityMagnitudeFinal

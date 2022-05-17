@@ -13,17 +13,17 @@ class Game:
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         self.fps = FPS
-        self.bg = pg.image.load("bg.jpeg")
-        #self.bg = pg.transform.scale(self.bg, (WIDTH, HEIGHT))
+        self.bg = pg.image.load("bg2.png").convert_alpha()
+        self.bg = pg.transform.scale(self.bg, (WIDTH, HEIGHT))
 
-
+        self.pause = False
 
     def new(self):
         self.allObjects = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.grounds = pg.sprite.Group()
         self.balls = pg.sprite.Group()
-        self.ground = Ground(self, 0, GROUND_HEIGHT + 20, WIDTH, HEIGHT - GROUND_HEIGHT)
+        self.ground = Ground(self, 0, 470 + 20, WIDTH, HEIGHT - GROUND_HEIGHT)
         self.leftWall = Wall(self, 0, -(HEIGHT*2), 20, HEIGHT*3) 
         self.rightWall = Wall(self, WIDTH - 20, -(HEIGHT*2), 20, HEIGHT*3)
 
@@ -43,19 +43,25 @@ class Game:
                     self.quit()
                 if event.key == pg.K_SPACE:
                     Ball(self, 80, HEIGHT - 400, random.randrange(30, 60))
-
+                if event.key == pg.K_p:
+                    self.pause = not self.pause
+                    
+                if event.key == pg.K_RIGHT:
+                    for object in self.allObjects:
+                        object.update()
     def update(self):
-        for object in self.allObjects:
-            object.update()
+        if self.pause != True:
+            for object in self.allObjects:
+                object.update()
         
        
     def draw(self):
         self.screen.fill(BGCOLOR)
-        #self.screen.blit(self.bg, (0,0))
+        self.screen.blit(self.bg, (0,0))
         for index, ball in enumerate(self.balls):
-            self.drawText(str(index+1), "Arial", ball.radius//2, (255, 255, 255), ball.pos.x, ball.pos.y - ball.radius - 20)
+            self.drawText(str(index+1), "Arial", ball.radius//2, (0, 0, 0), ball.pos.x, ball.pos.y - ball.radius - 20)
             infoString = str(index+1) + "   Mass: " + str(round(ball.mass)) +  "   Velocity: " + str(round(ball.vel.x, 1)) + ", " + str(round(ball.vel.y, 1))
-            self.drawText(infoString, "Arial", 15, (255, 255, 255), 900, 25 + (25*index))
+            self.drawText(infoString, "Arial", 15, (0, 0, 0), 900, 25 + (25*index))
 
         self.allObjects.draw(self.screen)
         pg.display.flip()
