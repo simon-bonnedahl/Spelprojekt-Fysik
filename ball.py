@@ -18,8 +18,9 @@ class Ball(pg.sprite.Sprite):
         self.area = self.radius**2 * math.pi
         self.mass = self.area*self.density
         self.pos = vec(x, y)
-        self.vel = vec(5, -5)                   #initital hastighetesvektor
+        self.vel = vec(5, -5)                                            #initital hastighetesvektor
         self.acc = vec(0, 0)
+
         self.onGround = False
 
         #Grafik
@@ -31,9 +32,10 @@ class Ball(pg.sprite.Sprite):
 
 
 
-    def update(self):  
-        #Updaterar krafterna som påverkar bollen, acceleration, hastighet och läge
-        dragForce = vec(0, 0)
+    def update(self):           #Em metod som uppdaterar krafterna som påverkar bollen, acceleration, hastighet och läge
+                                #Liknande leapfrog metoden där vi använder oss av tidigare värden på hastighet och läge.
+        
+        dragForce = vec(0, 0)               #Återställer krafterna
         gravityForce = vec(0, 0)
         frictionForce = vec(0, 0)
 
@@ -43,21 +45,23 @@ class Ball(pg.sprite.Sprite):
         else:                                               #Om en boll är på marken, räkna ut friktionen
             self.acc = vec(0, 0)
             normalForce = self.mass * GRAVITY               #Normalkraften = Gravitationskraften
-            if self.vel.magnitude() > 0.01: 
-                frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT                    
+            if self.vel.magnitude() > STOP_THRESHHOLD: 
+                frictionForce = -self.vel.normalize() * normalForce * FRICTION_CONSTANT       #vel.normalize() ger hastighetsvektorns riktning, -vel.normalize() blir då åt motsatt håll             
 
         
-        if self.vel.magnitude() > 0.01:                        #Om bollen är i rörelse, räkna ut luftmotståndet
+        if self.vel.magnitude() > STOP_THRESHHOLD:                        #Om bollen är i rörelse, räkna ut luftmotståndet
             dragForce = -self.vel.normalize() * (DRAG_CONSTANT * AIR_DENSITY * self.area * self.vel.magnitude_squared())/2
         else:
-            self.vel = vec(0, 0)
+            self.vel = vec(0, 0)                                    #Stannar bollen helt å hållet.
 
-        nettoForce = gravityForce + dragForce + frictionForce
+        nettoForce = gravityForce + dragForce + frictionForce       #Räkna ut nettokraften Fnet
+        self.acc = nettoForce/self.mass                             # Acceleration = Fnet / massa
 
-        self.acc = nettoForce/self.mass   
+        self.vel += self.acc * self.game.dt                         # Uppdaterar hastigheten
+        self.pos += self.vel                                        # Uppdaterar läget
 
-        self.vel += self.acc * self.game.dt             #Delta tid
-        self.pos += self.vel    
+
+
 
         #Kollisoner
         self.rect.centerx = self.pos.x
@@ -66,18 +70,11 @@ class Ball(pg.sprite.Sprite):
         self.collideWithEnviroment('y')
 
         self.collideWithBalls(self.game.balls)
-        
-       
 
         #Rendering
-        
-        #pygame.gfxdraw.aacircle renderas bättre än pygame.draw.circle
-       # pygame.gfxdraw.aacircle(self.image, self.radius, self.radius, self.radius-1, self.color)
-        #pygame.gfxdraw.filled_circle(self.image, self.radius, self.radius, self.radius-1, self.color)
-
         self.game.screen.blit(self.sprite, (self.pos))
 
-    def collideWithEnviroment(self, dir):
+    def collideWithEnviroment(self, dir):           
 
         if dir == 'x':                  #Kollision med väggar
             hits = pg.sprite.spritecollide(self, self.game.walls, False)
@@ -87,10 +84,10 @@ class Ball(pg.sprite.Sprite):
                 if self.vel.x < 0:                                          #Vänster vägg
                     self.pos.x = hits[0].rect.right + self.rect.width /2
 
-                self.vel.x *= -0.90 # 10% av hastigheten försvinner vid studs
+                self.vel.x *= -0.95 # 5% av hastigheten försvinner vid studs
 
-                                        #Kollision med marken
-        if dir == 'y':
+                                        
+        if dir == 'y':                  #Kollision med marken
             hits = pg.sprite.spritecollide(self, self.game.grounds, False)
             if hits: 
                 if self.vel.y > 0:
@@ -102,53 +99,42 @@ class Ball(pg.sprite.Sprite):
                         self.vel.y = 0
                     else:                                                       
                         self.onGround = False
-                        self.vel.y *= -0.90                                     # 10% av hastigheten försvinner vid studs
+                        self.vel.y *= -0.95                                     # 5% av hastigheten försvinner vid studs
                     
             
-    def distanceTo(self, pos2, pos1):
+    def distanceTo(self, pos2, pos1):                               #En metod som räknar ut avståndet mellan två positioner
         return math.sqrt((pos2.x - pos1.x)**2 + (pos2.y - pos1.y)**2)
     
-    def collideWithBalls(self, balls):
-        for ball in balls:
-            if ball != self:
+    def collideWithBalls(self, balls):          #En metod som både letar efter kollisioner och utför kollisioner mellan alla bollar
+        for ball in balls:                      #Metoden använder sig av 2-dimensionell elastisk kollision där formeln för elastisk kollison
+            if ball != self:                    #endast tar in bollarnas hastighet i rikting mot varandra och inte deras totala hasighet.
                 distanceNextFrame = self.distanceTo(self.pos + self.vel, ball.pos + ball.vel);	
                 if (distanceNextFrame - self.radius - ball.radius < 0):
-                    self.onGround = False
-                    ball.onGround = False
+                    self.onGround = False                                       #Skulle vi ha en kollison som gör att bollen trycks upp i luften igen
+                    ball.onGround = False                                       #Så vill vi att den ska påverkas av gravitation igen
 
                     dist = self.distanceTo(self.pos, ball.pos);	                #Mass center till mass center(hypotenusa)
-                    pg.draw.line(self.game.screen, (0, 0, 0), self.pos, ball.pos, width=2)
-                    #print("drawing line")
-
-                    print("My pos", self.pos)
-                    print("Other pos", ball.pos)
                     
                     normalX = (ball.pos.x - self.pos.x) / dist                  #Skillnad i x-led delat på hypotenusa
                     normalY = (ball.pos.y - self.pos.y) / dist                  #Skillnad i y-led delat på hypotenusa
 
-                    normal = vec(normalX, normalY)
-                    tangent = vec(-normal.y, normal.x)
+                    normal = vec(normalX, normalY)                              #En normalvektor som ger riktiningen mellan bollarnas mittpunkter vid kollision
+                    tangent = vec(-normal.y, normal.x)                          #Normalvektorns tangerande vektor 
 
-                    print("Tangent: ", tangent)
-                    print("Normal: ", normal)
-
-                    dotProductTan1 = self.vel.x * tangent.x + self.vel.y * tangent.y
-                    dotProductTan2 = ball.vel.x * tangent.x + ball.vel.y * tangent.y
-
-                    print("Dot product 1: ", dotProductTan1)
-                    print("Dot product 2: ", dotProductTan2)
-
-                    self.velocityMagnitudeInitial = self.vel.x * normal.x + self.vel.y * normal.y
+                    self.velocityMagnitudeInitial = self.vel.x * normal.x + self.vel.y * normal.y           #Bollarnas hastighet endast i normalens riktning
                     ball.velocityMagnitudeInitial = ball.vel.x * normal.x + ball.vel.y * normal.y
 
-                    print("My velocity initial: ", self.velocityMagnitudeInitial)
-                    print("Other velocity initial: ", ball.velocityMagnitudeInitial)
-                                #Vai                    #ma - mb                #2mb            Vbi                 ma + mb
+                    dotProductTan1 = self.vel.x * tangent.x + self.vel.y * tangent.y                        #Bollarnas hastighet endast i riktningen tangent från normalen         
+                    dotProductTan2 = ball.vel.x * tangent.x + ball.vel.y * tangent.y
+
+                
+                    #Elastiskkollision
+                                #Vaf                    #Vai                        #Ma - Mb                    #2M*Vbi                                          #Ma + Mb
                     self.velocityMagnitudeFinal = (self.velocityMagnitudeInitial * (self.mass - ball.mass) + 2 * ball.mass * ball.velocityMagnitudeInitial) / (self.mass + ball.mass)
                     ball.velocityMagnitudeFinal = (ball.velocityMagnitudeInitial * (ball.mass - self.mass) + 2 * self.mass * self.velocityMagnitudeInitial) / (self.mass + ball.mass)
                     
                    
-                    self.vel.x = tangent.x * dotProductTan1 + normal.x * self.velocityMagnitudeFinal
+                    self.vel.x = tangent.x * dotProductTan1 + normal.x * self.velocityMagnitudeFinal            #Bollarnas slutgiltiga hastighetsvektorer
                     self.vel.y = tangent.y * dotProductTan1 + normal.y * self.velocityMagnitudeFinal
 
                     ball.vel.x = tangent.x  * dotProductTan2 + normal.x * ball.velocityMagnitudeFinal

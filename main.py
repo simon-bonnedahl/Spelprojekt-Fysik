@@ -6,14 +6,15 @@ from ground import Ground
 import random
 import time
 
-class Game:
+
+class Game:                 #Denna klass hanterar alla object och rendering. All fysik utförs i Ball.py
     def __init__(self):
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         self.fps = FPS
-        self.bg = pg.image.load("bg2.png").convert_alpha()
+        self.bg = pg.image.load("bg.png").convert_alpha()
         self.bg = pg.transform.scale(self.bg, (WIDTH, HEIGHT))
 
         self.pause = False
@@ -56,7 +57,6 @@ class Game:
         
        
     def draw(self):
-        self.screen.fill(BGCOLOR)
         self.screen.blit(self.bg, (0,0))
         for index, ball in enumerate(self.balls):
             self.drawText(str(index+1), "Arial", ball.radius//2, (0, 0, 0), ball.pos.x, ball.pos.y - ball.radius - 20)
@@ -74,6 +74,7 @@ class Game:
 
     def quit(self):
         pg.quit()
+        
 
 
 g = Game()

@@ -13,7 +13,7 @@ class Ground(pg.sprite.Sprite):
         self.height = height
         self.image = pg.Surface((self.width, self.height))
         self.image.fill(BLACK)
-        self.image.set_alpha(0)
+        self.image.set_alpha(0)         #Transparant
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = self.pos
 
